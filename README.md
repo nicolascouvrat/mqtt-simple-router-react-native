@@ -1,6 +1,8 @@
-# MQTT simple router
+# MQTT simple router React Native
 
-This simple module allows you to centralize both subscribing to [MQTT](https://www.npmjs.com/package/mqtt) topics and reacting to subsequent messages on that topic in a router-type file.
+This is a fork from the [mqtt-simple-router](https://github.com/nicolascouvrat/mqtt-simple-router) node module, adapted to work with common MQTT modules for React Native. Namely, `mqtt-simple-router-react-native` works with both [react_native_mqtt](https://github.com/Introvertuous/react_native_mqtt) and [react-native-paho-mqtt](https://github.com/rh389/react-native-paho-mqtt). The usage is identical to the original node module, the only thing that changes is the client definition.
+
+This module allows you to centralize both subscribing to [MQTT](https://www.npmjs.com/package/mqtt) topics and reacting to subsequent messages on that topic in a router-type file.
 The router uses [path-to-regexp](https://www.npmjs.com/package/path-to-regexp) in order to provide path recognition and named parameters
 
 The creation of this module was motivated by the annoyance that is having both subscription code and listening code separated, and the nightmare that are chained if / elseif statements.
@@ -36,10 +38,26 @@ The `request` passed to the callback function is an object containing `request.t
 Much like Express.js's router, next() allows you to chain several layers for a single request. For example, all topics matching `/json/#` could first be json parsed by a first layer, then different layers `/json/topic1` and `/json/topic2` could apply more specific processing depending on the received topic. Note that **no argument should be passed to the `next()` function except for errors** (see the **error handling** section below), and that not calling `next()` will stop the matching process (i.e. the router will stop at the first match, even if there are others below) which might lead to some layers being unaccessible.
 
 ```js
-var mqtt = require('mqtt');
+import { Client } from 'react-native-paho-mqtt'; // or react_native_mqtt
 var mqttRouter = require('mqtt-simple-router');
+/**
+ * The following procedure will vary depending on what module you pick
+ */
+const storage = {
+  setItem: (key, item) => { storage[key] = item; },
+  getItem: key => storage[key],
+  removeItem: (key) => { delete storage[key]; },
+};
 
-var client = mqtt.connect('mqtt://localhost');
+var client = new Client({
+  uri: 'ws://iot.eclipse.org:80/ws',
+  clientId: 'clientID',
+  storage,
+};
+
+/**
+ * From now, the procedure is the same no matter the module
+ */
 
 var router = new mqttRouter();
 
@@ -75,9 +93,8 @@ router.auto('/all/hello/message', function(request, next) {
 
 // wrap the router around the client,
 // this needs to be done after connection
-client.on('connect', () => {
-  router.wrap(client);
-});
+// and will most likely depend on the chose module
+client.connect().then( () => { router.wrap(client); });
 ```
 
 #### `manual()` vs `auto()`
