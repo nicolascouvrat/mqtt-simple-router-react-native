@@ -101,10 +101,20 @@ class MqttRouter {
         }
 
         // use provided stack on message received
-        this.client.on('message', (message) => {
-            console.log('got it');
+
+        if (this.client.on) {
+          // for react-native-paho-mqtt
+          this.client.on('messageReceived', (message) => {
+              console.log('got it');
+              this.stack.use(message.destinationName, message.payloadString);
+          });
+        } else {
+          // for react_native_mqtt
+          this.client.onMessageArrived = message => {
             this.stack.use(message.destinationName, message.payloadString);
-        })
+          };
+        }
+
     }
 
     /**
